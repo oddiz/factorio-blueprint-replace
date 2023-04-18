@@ -43,9 +43,9 @@ function findUniqueNames(obj: any, uniqueNames: Set<string>) {
 function App() {
     const [inputValue, setInputValue] = useState(""),
         [jsonValue, setJsonValue] = useState(""),
-        [searchValues, setSearchValues] = useState<Array<string>>([""]),
+        [searchValues, setSearchValues] = useState<Array<string>>([]),
         [uniqueNames, setUniqueNames] = useState<Array<string>>([]),
-        [replaceValues, setReplaceValues] = useState<Array<string>>([""]),
+        [replaceValues, setReplaceValues] = useState<Array<string>>([]),
         [outputValue, setOutputValue] = useState(""),
         [isCopied, setIsCopied] = useState(false);
 
@@ -89,16 +89,31 @@ function App() {
         setSearchValues([...searchValues, ""]);
         setReplaceValues([...replaceValues, ""]);
     }
+    function handleRemoveRow(index: number) {
+        const newSearchValues = [...searchValues];
+        const newReplaceValues = [...replaceValues];
+
+        newSearchValues.splice(index, 1);
+        newReplaceValues.splice(index, 1);
+
+        setSearchValues(newSearchValues);
+        setReplaceValues(newReplaceValues);
+    }
 
     function handleOutputClick() {
         try {
             // Replace specified parts of JSON and deflate it
             let json = jsonValue;
-            const searchRegexes = searchValues.map((value) => new RegExp(value, "g"));
-
+            const searchRegexes = searchValues.reduce((acc: RegExp[], value) => {
+                if (value !== "") {
+                    acc.push(new RegExp(`"${value}"`, "g"));
+                }
+                return acc;
+            }, []);
+            console.log(searchRegexes);
             for (let i = 0; i < searchValues.length; i++) {
-                if (searchRegexes[i] && replaceValues[i]) {
-                    json = json.replace(searchRegexes[i], replaceValues[i]);
+                if (searchRegexes[i]) {
+                    json = json.replace(searchRegexes[i], `"${replaceValues[i] || ""}"`);
                 }
             }
 
@@ -137,27 +152,29 @@ function App() {
                         value={inputValue}
                         onChange={handleInputChange}
                     ></textarea>
-                    <div className="w-full py-1 my-4 flex-col">
-                        <label
-                            htmlFor="uniquenames"
-                            className="block mb-2"
-                        >
-                            Unique Names:
-                        </label>
-                        <div className="flex-row flex-wrap">
-                            {uniqueNames.map((name) => (
-                                <button
-                                    key={name}
-                                    className="m-2 px-2 py-1 rounded-md bg-slate-600 hover:bg-slate-400"
-                                    onClick={() => {
-                                        setSearchValues([...searchValues, name]);
-                                    }}
-                                >
-                                    {name}
-                                </button>
-                            ))}
+                    {uniqueNames.length !== 0 && (
+                        <div className="w-full py-1 my-4 flex-col">
+                            <label
+                                htmlFor="uniquenames"
+                                className="block mb-2"
+                            >
+                                Unique Entities:
+                            </label>
+                            <div className="flex-row flex-wrap">
+                                {uniqueNames.map((name) => (
+                                    <button
+                                        key={name}
+                                        className="m-2 px-2 py-1 rounded-md bg-slate-600 hover:bg-slate-400"
+                                        onClick={() => {
+                                            setSearchValues([...searchValues, name]);
+                                        }}
+                                    >
+                                        {name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="flex flex-col md:flex-row gap-4 ">
                         <div className="flex flex-col md:flex-col w-24 gap-4 mt-4 flex-1">
                             <div className="flex flex-1 flex-row gap-4">
@@ -178,7 +195,7 @@ function App() {
                             {searchValues.map((value, index) => (
                                 <div
                                     key={index}
-                                    className="flex flex-1 flex-row gap-4"
+                                    className="flex flex-1 flex-row gap-4 items-center"
                                 >
                                     <div className="w-44">
                                         <input
@@ -198,6 +215,14 @@ function App() {
                                             onChange={(event) => handleReplaceChange(index, event)}
                                         />
                                     </div>
+                                    <button
+                                        id={`remove-${index}`}
+                                        key={`remove-${index}`}
+                                        className={`w-6 h-6  rounded-md bg-slate-600 hover:bg-slate-500 inset-1`}
+                                        onClick={() => handleRemoveRow(index)}
+                                    >
+                                        X
+                                    </button>
                                 </div>
                             ))}
                             <div>
